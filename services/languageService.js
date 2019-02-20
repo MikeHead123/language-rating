@@ -104,14 +104,10 @@ class LanguageService {
       languageId: data.languageId,
     });
     await this.updateRatings();
-    await this.ratingModel.findOneAndUpdate(
-      { _id: rating._id },
+    await rating.update(
       {
-        $set: {
-          createdAt: new Date(),
-        },
-      },
-    );
+        createdAt: new Date(),
+      });
     return rating;
   }
 
