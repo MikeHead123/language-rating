@@ -126,7 +126,7 @@ class LanguageService {
     }
   }
 
-  async getVotesByLastMonth() {
+  async getVotesByCurrentMonth() {
     try {
       const ratings = await this.ratingModel.aggregate([
         { $project: { languageId: 1, month: { $month: '$createdAt' } } },
@@ -149,21 +149,20 @@ class LanguageService {
 
   async updateRatings() {
     let languages = await this.getLanguages();
-    const ratingsByLastMonce = await this.getVotesByLastMonth();
+    const ratingsByCurrentMonth = await this.getVotesByCurrentMonth();
     const ratings = await this.getVotes();
     languages = languages.map((currentLang) => {
       // eslint-disable-next-line no-underscore-dangle
-      if (ratingsByLastMonce.length === 0 && ratings.length > 0) { // обнуляем изменение в следующем месяце
-        // eslint-disable-next-line no-param-reassign
+      if (ratingsByCurrentMonth.length === 0 && ratings.length > 0) { // обнуляем изменение в следующем месяце
         currentLang.changesPercentFromLastMounce = 0;
         currentLang.positionChanges = false;
       }
       const totalVoices = ratings.reduce((total, currentRaiting) =>
         (currentLang._id.toString() === currentRaiting.languageId.toString() ? total + 1 : total), 0);
-      // eslint-disable-next-line no-param-reassign
+
       currentLang.changesPercentFromLastMounce = (totalVoices / ratings.length * 100 - currentLang.percentInRating)
         + currentLang.changesPercentFromLastMounce;
-      // eslint-disable-next-line no-param-reassign
+
       currentLang.percentInRating = totalVoices / ratings.length * 100;
 
       return currentLang;
