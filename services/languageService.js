@@ -12,91 +12,84 @@ class LanguageService {
   }
 
   async getLanguages() {
-    try {
-      const languages = await this.languageModel.find({});
-      return languages;
-    } catch (err) {
-      return err;
-    }
+    const languages = await this.languageModel.find({}, {
+      _id: 1, name: 1, percentInRating: 1, changesPercentFromLastMonth: 1, positionChanges: 1,
+    },
+    {
+      sort: {
+        percentInRating: -1,
+      },
+    }).lean();
+    let position = 1;
+    const newLanguages = languages.map((currentLang) => {
+      currentLang.position = position;
+      position++;
+      return currentLang;
+    });
+    return newLanguages;
   }
 
   async saveLanguage(data) {
     if (!data.name || typeof data.name !== 'string') {
       throw new Error('name must be a string');
     }
-    try {
-      const languages = await this.getLanguages();
-      const language = await this.languageModel.create({
-        name: data.name,
-        position: languages.length + 1,
-      });
-      return language;
-    } catch (err) {
-      return err;
-    }
+    const language = await this.languageModel.create({
+      name: data.name,
+    });
+    return language;
   }
 
   async delLanguage(data) {
     if (!data.id) {
       throw new Error('doesnot have id');
     }
-    try {
-      await this.languageModel.findByIdAndRemove(data.id);
-      await this.delLanguageVotes(data.id);
-      await this.updateRatings();
-      return data.id;
-    } catch (err) {
-      return err;
-    }
+    await this.languageModel.findByIdAndRemove(data.id);
+    await this.delLanguageVotes(data.id);
+    await this.updateRatings();
+    return data.id;
   }
 
+  // eslint-disable-next-line consistent-return
   async delLanguageVotes(languageId) {
     if (!languageId) {
       throw new Error('doesnot have languageId');
     }
-    try {
-      await this.ratingModel.find({ languageId }).remove();
-      return 1;
-    } catch (err) {
-      return err;
-    }
+    await this.ratingModel.find({ languageId }).remove();
   }
 
   async updateLanguage(data) {
-    if (!data.name || typeof data.name !== 'string') {
+    if (!data.name || typeof data.name !== 'string' || !data.id) {
       throw new Error('name must be a string');
     }
-    try {
-      await this.languageModel.findOneAndUpdate(
-        { _id: data.id },
-        {
-          $set: {
-            name: data.name,
-          },
+    await this.languageModel.findOneAndUpdate(
+      { _id: data.id },
+      {
+        $set: {
+          name: data.name,
         },
-      );
-      return data.id;
-    } catch (err) {
-      return err;
-    }
+      },
+    );
+    return data.id;
   }
 
   async getTopLanguages() {
-    try {
-      const languages = await this.languageModel.find({}, {
-        _id: 0, name: 1, position: 1, percentInRating: 1,
+    const languages = await this.languageModel.find({}, {
+      _id: 0, name: 1, percentInRating: 1,
+    },
+    {
+      skip: 0,
+      limit: 5,
+      sort: {
+        percentInRating: -1,
       },
-      {
-        skip: 0,
-        limit: 5,
-        sort: {
-          position: 1,
-        },
-      });
-      return languages;
-    } catch (err) {
-      return err;
-    }
+    }).lean();
+    let position = 1;
+    const newLanguages = languages.map((currentLang) => {
+      currentLang.position = position;
+      position++;
+      return currentLang;
+    });
+    return newLanguages;
   }
 
   async saveVote(data) {
@@ -107,95 +100,72 @@ class LanguageService {
     if (exists === null) {
       throw new Error('language doesnot exists');
     }
-    try {
-      const rating = await this.ratingModel.create({
-        languageId: data.languageId,
-      });
-      await this.updateRatings();
-      await this.ratingModel.findOneAndUpdate(
-        { _id: rating._id },
-        {
-          $set: {
-            createdAt: new Date(),
-          },
+    const rating = await this.ratingModel.create({
+      languageId: data.languageId,
+    });
+    await this.updateRatings();
+    await this.ratingModel.findOneAndUpdate(
+      { _id: rating._id },
+      {
+        $set: {
+          createdAt: new Date(),
         },
-      );
-      return rating;
-    } catch (err) {
-      return err;
-    }
+      },
+    );
+    return rating;
   }
 
   async getVotesByCurrentMonth() {
-    try {
-      const ratings = await this.ratingModel.aggregate([
-        { $project: { languageId: 1, month: { $month: '$createdAt' } } },
-        { $match: { month: (new Date()).getMonth() + 1 } },
-      ]);
-      return ratings;
-    } catch (err) {
-      return err;
-    }
+    const ratings = await this.ratingModel.aggregate([
+      { $project: { languageId: 1, month: { $month: '$createdAt' } } },
+      { $match: { month: (new Date()).getMonth() + 1 } },
+    ]);
+    return ratings;
   }
 
   async getVotes() {
-    try {
-      const ratings = await this.ratingModel.find({});
-      return ratings;
-    } catch (err) {
-      return err;
-    }
+    const ratings = await this.ratingModel.find({});
+    return ratings;
   }
 
   async updateRatings() {
-    let languages = await this.getLanguages();
+    const languages = await this.getLanguages();
     const ratingsByCurrentMonth = await this.getVotesByCurrentMonth();
     const ratings = await this.getVotes();
-    languages = languages.map((currentLang) => {
+    const newLanguages = languages.map((currentLang) => {
       // eslint-disable-next-line no-underscore-dangle
       if (ratingsByCurrentMonth.length === 0 && ratings.length > 0) { // обнуляем изменение в следующем месяце
-        currentLang.changesPercentFromLastMounce = 0;
+        currentLang.changesPercentFromLastMonth = 0;
         currentLang.positionChanges = false;
       }
-      const totalVoices = ratings.reduce((total, currentRaiting) =>
-        (currentLang._id.toString() === currentRaiting.languageId.toString() ? total + 1 : total), 0);
+      const totalVoices = ratings.reduce((total, currentRaiting) => (currentLang._id.toString() === currentRaiting.languageId.toString() ? total + 1 : total), 0);
 
-      currentLang.changesPercentFromLastMounce = (totalVoices / ratings.length * 100 - currentLang.percentInRating)
-        + currentLang.changesPercentFromLastMounce;
+      currentLang.changesPercentFromLastMonth = (totalVoices / ratings.length * 100 - currentLang.percentInRating)
+        + currentLang.changesPercentFromLastMonth;
 
       currentLang.percentInRating = totalVoices / ratings.length * 100;
 
+      if (currentLang.changesPercentFromLastMonth !== 0) {
+        currentLang.positionChanges = true;
+      } else {
+        currentLang.positionChanges = false;
+      }
       return currentLang;
     });
-    languages.sort((a, b) => {
-      if (a.percentInRating < b.percentInRating) {
-        return 1;
-      }
-      if (a.percentInRating > b.percentInRating) {
-        return -1;
-      }
-      return 0;
-    });
+    newLanguages.sort((a, b) => b.percentInRating - a.percentInRating);
 
-    languages.forEach(async (currentLang, index) => {
+    newLanguages.forEach(async (currentLang) => {
       const updateObject = {
-        changesPercentFromLastMounce: currentLang.changesPercentFromLastMounce,
+        changesPercentFromLastMonth: currentLang.changesPercentFromLastMonth,
         percentInRating: currentLang.percentInRating,
-        position: index + 1,
+        positionChanges: currentLang.positionChanges,
       };
-      if (currentLang.positionChanges === false) { // проверяем только те которые не меняли позицию
-        updateObject.positionChanges = (currentLang.position - (index + 1)) !== 0;
-      }
-      try {
-        await this.languageModel.findOneAndUpdate(
-          { _id: currentLang.id },
-          {
-            $set: updateObject,
-          },
-        );
-      } catch (err) {
-        return err;
-      }
+      await this.languageModel.findOneAndUpdate(
+        { _id: currentLang._id },
+        {
+          $set: updateObject,
+        },
+      );
     });
   }
 
