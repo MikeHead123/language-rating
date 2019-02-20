@@ -1,0 +1,28 @@
+{
+  "name": "language-rating",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MikeHead123/language-rating.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MikeHead123/language-rating/issues"
+  },
+  "homepage": "https://github.com/MikeHead123/language-rating#readme",
+  "devDependencies": {
+    "eslint": "^5.13.0",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-plugin-import": "^2.16.0",
+    "nodemon": "^1.18.9"
+  },
+  "dependencies": {
+    "mongoose": "^5.4.13"
+  }
+}
