@@ -30,7 +30,7 @@ module.exports = async (req, res) => {
     const response = await languageService.getLanguages();
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify(response));
+    return res.end(JSON.stringify(response));
   }
   if (reqUrl.pathname === '/language' && req.method === 'POST') {
     try {
@@ -39,10 +39,11 @@ module.exports = async (req, res) => {
 
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify(response));
+      return res.end(JSON.stringify(response));
     } catch (err) {
+      console.log(err)
       res.statusCode = 500;
-      res.end('error');
+      return res.end('error');
     }
   }
   if (reqUrl.pathname === '/language' && req.method === 'DELETE') {
@@ -52,10 +53,11 @@ module.exports = async (req, res) => {
 
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify(response));
+      return res.end(JSON.stringify(response));
     } catch (err) {
+      console.log(err)
       res.statusCode = 500;
-      res.end('error');
+      return res.end('error');
     }
   }
   if (reqUrl.pathname === '/language' && req.method === 'PUT') {
@@ -65,17 +67,18 @@ module.exports = async (req, res) => {
 
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify(response));
+      return res.end(JSON.stringify(response));
     } catch (err) {
+      console.log(err)
       res.statusCode = 500;
-      res.end('error');
+      return res.end('error');
     }
   }
   if (reqUrl.pathname === '/language/top5' && req.method === 'GET') {
     const response = await languageService.getTopLanguages();
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify(response));
+    return res.end(JSON.stringify(response));
   }
   if (reqUrl.pathname === '/languageVote' && req.method === 'POST') {
     try {
@@ -83,14 +86,14 @@ module.exports = async (req, res) => {
       const response = await languageService.saveVote(postBody);
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify(response));
+      return res.end(JSON.stringify(response));
     } catch (err) {
+      console.log(err)
       res.statusCode = 500;
-      res.end('error');
+      return res.end('error');
     }
-  } else {
-    res.statusCode = 500;
-    res.setHeader('Content-Type', 'text/plain');
-    res.end(`Invalid Endpoint: ${reqUrl.pathname}`);
   }
+  res.statusCode = 500;
+  res.setHeader('Content-Type', 'text/plain');
+  return res.end(`Invalid Endpoint: ${reqUrl.pathname}`);
 };

@@ -21,6 +21,9 @@ class LanguageService {
   }
 
   async saveLanguage(data) {
+    if (!data.name || typeof data.name !== 'string') {
+      throw new Error('name must be a string');
+    }
     try {
       const languages = await this.getLanguages();
       const language = await this.languageModel.create({
@@ -37,15 +40,35 @@ class LanguageService {
   }
 
   async delLanguage(data) {
+    if (!data.id) {
+      throw new Error('doesnot have id');
+    }
     try {
       await this.languageModel.findByIdAndRemove(data.id);
+      await this.delLanguageVotes(data.id);
+      await this.updateRatings();
       return data.id;
     } catch (err) {
       return err;
     }
   }
 
+  async delLanguageVotes(languageId) {
+    if (!languageId) {
+      throw new Error('doesnot have languageId');
+    }
+    try {
+      await this.ratingModel.find({ languageId }).remove();
+      return 1;
+    } catch (err) {
+      return err;
+    }
+  }
+
   async updateLanguage(data) {
+    if (!data.name || typeof data.name !== 'string') {
+      throw new Error('name must be a string');
+    }
     try {
       await this.languageModel.findOneAndUpdate(
         { _id: data.id },
@@ -80,6 +103,14 @@ class LanguageService {
   }
 
   async saveVote(data) {
+    if (!data.languageId) {
+      throw new Error('doesnot have languageId');
+    }
+    const exists = await this.getLanguage(data.languageId);
+    if (exists === null) {
+      console.log('nenf ff e e g');
+      throw new Error('language doesnot exists');
+    }
     try {
       const rating = await this.ratingModel.create({
         languageId: data.languageId,
@@ -93,7 +124,10 @@ class LanguageService {
 
   async getVotes() {
     try {
-      const ratings = await this.ratingModel.find({});
+      const ratings = await this.ratingModel.aggregate([
+        { $project: { languageId: 1, month: { $month: '$createdAt' } } },
+        { $match: { month: (new Date()).getMonth() + 1 } },
+      ]);
       return ratings;
     } catch (err) {
       return err;
@@ -111,7 +145,6 @@ class LanguageService {
       // eslint-disable-next-line no-param-reassign
       currentLang.percentInRating = totalVoices / ratings.length * 100;
       return currentLang;
-
     });
     languages.sort((a, b) => {
       if (a.percentInRating < b.percentInRating) {
@@ -143,6 +176,9 @@ class LanguageService {
   }
 
   async getLanguage(id) {
+    if (!id) {
+      throw new Error('doesnot have id');
+    }
     const language = await this.languageModel.findById(id);
     return language;
   }

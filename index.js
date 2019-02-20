@@ -1,4 +1,5 @@
 const http = require('http');
+const mongoose = require('mongoose');
 const languageController = require('./controllers/languageController');
 require('./dbConnection')();
 
@@ -10,4 +11,26 @@ server.listen(port, (err) => {
     return console.log('something bad happened', err);
   }
   console.log(`server is listening on ${port}`);
+});
+
+const closeAllConnections = () => {
+  console.log('Closing http server.');
+  server.close(() => {
+    console.log('Http server closed.');
+    // boolean means [force], see in mongoose doc
+    mongoose.connection.close(false, () => {
+      console.log('MongoDb connection closed.');
+      process.exit(0);
+    });
+  });
+};
+
+process.on('SIGTERM', () => {
+  console.info('SIGTERM signal received.');
+  closeAllConnections();
+});
+
+process.on('SIGINT', () => {
+  console.info('SIGINT signal received.');
+  closeAllConnections();
 });
