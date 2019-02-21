@@ -1,12 +1,12 @@
 const http = require('http');
 const mongoose = require('mongoose');
-const languageController = require('./handlers/requestHandler');
+const requestHandler = require('./handlers/requestHandler');
 require('./dbConnection')();
 
 const port = 3000;
 const proxy = async (req, res) => {
   try {
-    await languageController(req, res);
+    await requestHandler(req, res);
   } catch (err) {
     console.log(err);
     res.statusCode = 500;
